@@ -72,6 +72,7 @@ function HomePage() {
             <input
               type="checkbox"
               checked={overwrite}
+              onChange={(e) => setOverwrite(e.target.checked)}
 v            />
             Overwrite Existing Data
           </label>
