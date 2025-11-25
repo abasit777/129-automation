@@ -2,13 +2,14 @@
 export const fetchQuickBooksReport = async ({
   startDate,
   endDate,
-  accountName,
+  accountIds,
+  type
 }) => {
   try {
-    const response = await fetch("https://tstaccounts.abasit477.workers.dev/", {
+    const response = await fetch(`https://tstaccounts.abasit477.workers.dev/?mode=${type}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startDate, endDate, accountName }),
+      body: JSON.stringify({ startDate, endDate, accountIds }),
     });
 
     if (!response.ok) {
