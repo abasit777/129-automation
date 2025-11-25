@@ -333,3 +333,21 @@ export const formatAccountsForDropdown = (companies) => {
     })),
   }));
 };
+
+export const showToast = (message, type = "success") => {
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span>${message}</span>
+    <div class="close-btn" onclick="this.parentElement.remove()">×</div>
+  `;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = "fadeOut 0.4s ease forwards";
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+};
+
+
