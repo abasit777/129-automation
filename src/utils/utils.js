@@ -122,6 +122,7 @@ const convertRow = (columns, colData, accountName, fileName) => {
         break;
       case "Exchange Rate":
         result["Exchange Rate"] = value;
+        break;
       default:
         break;
     }
@@ -345,12 +346,5 @@ function removeFirstPipeSection(desc = "") {
   return parts.join("|").trim();
 }
 
-function extractEXR(description) {
-  const match = description.match(/EXR\s*=\s*([0-9]*\.?[0-9]+)/);
-  if (match) {
-    return parseFloat(match[1]);     // exact precision (e.g. 3.673)
-  }
-  return 0; // no EXR found
-}
 
 
