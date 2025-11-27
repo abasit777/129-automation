@@ -1,13 +1,13 @@
 import React from "react";
 import Select from "react-select";
 
-const AccountsDropdown = ({ groupedAccounts, onChange, loading }) => {
+const AccountsDropdown = ({ groupedAccounts, onChange, loading, isMulti, title }) => {
   return (
     <>
-      <label>Account Name</label>
+      <label>{title}</label>
       <Select
         options={groupedAccounts}
-        isMulti
+        isMulti = {isMulti}
         isLoading={loading}
         onChange={onChange}
         placeholder="Select accounts..."

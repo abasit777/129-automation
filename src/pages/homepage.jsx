@@ -4,6 +4,8 @@ import DateInput from "../components/DateInput";
 import AccountsDropdown from "../components//AccountsDropdown";
 import OverwriteToggle from "../components//Toggle";
 import SubmitButton from "../components/Button";
+import Select from "react-select";
+
 
 import { showToast } from "../utils/utils";
 import {
@@ -30,6 +32,81 @@ function HomePage() {
   const [selectedAccounts, setSelectedAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [journalAccount, setJournalAccount] = useState(null);
+  const journalAccounts = [
+    {
+      name: "129 Consulting",
+      path: "129 Consulting/Accounts - 129 Consulting_2025-26.xlsx"
+    },
+    {
+      name: "AR",
+      path: "Abdur Rehman/Accounts - AR_2025-26.xlsx"
+    },
+    {
+      name: "AQM",
+      path: "Ahmad Qamar Manan/Accounts - AQM_2025-26.xlsx"
+    },
+    {
+      name: "CodeSynx",
+      path: "Codesynx/Accounts - CodeSynx_2025-26.xlsx"
+    },
+    {
+      name: "Usman Jamil",
+      path: "Log N/Accounts - Usman Jamil_2025-26.xlsx"
+    },
+    {
+      name: "Luminogics",
+      path: "Luminogics/Accounts - Luminogics_2025-26.xlsx"
+    },
+    {
+      name: "Mirai Consulting",
+      path: "MIRAI/Accounts - Mirai Consulting_2025-26.xlsx"
+    },
+    {
+      name: "Muhammad Omer",
+      path: "Muhammad Omer/Accounts - Muhammad Omer_2025-26.xlsx"
+    },
+    {
+      name: "OrcaTech",
+      path: "OrcaTech/Accounts - OrcaTech_2025-26.xlsx"
+    },
+    {
+      name: "Panacea",
+      path: "Panacea/Accounts - Panacea_2025-26.xlsx"
+    },
+    {
+      name: "Retailync",
+      path: "Retailync/Accounts - Retailync_2025-26.xlsx"
+    },
+    {
+      name: "Source Tek",
+      path: "Source Tek/Accounts - Source Tek_2025-26.xlsx"
+    },
+    {
+      name: "TSG",
+      path: "TSG/Accounts - TSG_2025-26.xlsx"
+    },
+    {
+      name: "Usman Tariq",
+      path: "Usman Tariq/Accounts - Usman Tariq_2025-26.xlsx"
+    },
+    {
+      name: "Waheed Arshad",
+      path: "Waheed Arshad/Accounts - Waheed Arshad_2025-26.xlsx"
+    },
+    {
+      name: "Waqas Rasheed",
+      path: "Waqas Rasheed/Accounts - Waqas Rasheed_2025-26.xlsx"
+    }
+  ];
+  
+  
+
+  const options = journalAccounts.map(acc => ({
+    label: acc.name,
+    value: acc.name,
+    url: acc.path,
+  }));
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -53,6 +130,10 @@ function HomePage() {
     setSelectedAccounts(selected ? selected.map((item) => item.value) : []);
   };
 
+  const handleJournalAccountChange = (selected) => {
+    setJournalAccount(selected);
+  };
+
   const isFormValid =
     form.startDate &&
     form.endDate &&
@@ -67,8 +148,10 @@ function HomePage() {
     showToast("Fetching report...", "info");
 
     try {
-      const accountIds = selectedAccounts.map((x) => x.accountId);
-
+      const accountIds = selectedAccounts.map((x) => ({
+        accountId: x.accountId,
+        companyName: x.companyName,
+      }));
       const data = await fetchQuickBooksReport({
         startDate: form.startDate,
         endDate: form.endDate,
@@ -84,6 +167,7 @@ function HomePage() {
       await sendToPowerAutomate({
         overwrite: form.overwrite,
         rows: processed,
+        journalAccountUrl: journalAccount,
       });
 
       showToast("Sent to Power Automate!", "success");
@@ -115,12 +199,26 @@ function HomePage() {
           groupedAccounts={groupedAccounts}
           onChange={handleAccountChange}
           loading={loadingAccounts}
+          isMulti={true}
+          title="Select Ledger Accounts"
         />
 
-        <OverwriteToggle
+        <label>Select Journal Account</label>
+
+        <Select
+        options={options}
+        isMulti={false}
+        isLoading={false}
+        onChange={handleJournalAccountChange}
+        placeholder="Select Journal account..."
+        styles={dropdownStyles}
+      />
+
+        <p>Selected: {journalAccount?.label}</p>
+        {/* <OverwriteToggle
           value={form.overwrite}
           onChange={(v) => setForm({ ...form, overwrite: v })}
-        />
+        /> */}
 
         <SubmitButton
           loading={loading}
@@ -131,5 +229,17 @@ function HomePage() {
     </div>
   );
 }
+
+const dropdownStyles = {
+  control: (base) => ({
+    ...base,
+    backgroundColor: "#ffffff20",
+  }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isFocused ? "#eee" : "#fff",
+    color: "#000",
+  }),
+};
 
 export default HomePage;

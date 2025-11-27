@@ -1,85 +1,3 @@
-// utils/processEntries.js
-
-export function processEntries(data) {
-  if (!Array.isArray(data)) {
-    throw new Error("Input must be an array");
-  }
-
-  const result = [];
-
-  for (const item of data) {
-    // === RULE 2: Currency & Amount Processing (USD & AED with CCR logic) ===
-    let convertedAmt;
-    const desc = item["Memo/Description"] || "";
-
-    // Try to extract CCR
-    const ccrMatch = desc.match(/CCR\s*=\s*(\d+)/i);
-    const CCR = ccrMatch ? Number(ccrMatch[1]) : null;
-
-    // --- USD Rule (USD → PKR using CCR) ---
-    if (item.Currency === "USD" && CCR) {
-      if (item.Credit && item.Credit !== "") {
-        const base = Number(item.Credit);
-        if (!isNaN(base)) convertedAmt = (base * CCR).toFixed(2);
-      } else if (item.Debit && item.Debit !== "") {
-        const base = Number(item.Debit);
-        if (!isNaN(base)) convertedAmt = (base * CCR).toFixed(2);
-      }
-    }
-
-    // --- AED Rule (AED → USD → PKR using CCR) ---
-    if (item.Currency === "AED" && CCR) {
-      if (item.Credit && item.Credit !== "") {
-        const base = Number(item.Credit);
-        if (!isNaN(base)) {
-          const usd = base / 3.673; // convert AED → USD
-          convertedAmt = (usd * CCR).toFixed(2); // convert USD → PKR
-        }
-      } else if (item.Debit && item.Debit !== "") {
-        const base = Number(item.Debit);
-        if (!isNaN(base)) {
-          const usd = base / 3.673; // convert AED → USD
-          convertedAmt = (usd * CCR).toFixed(2); // convert USD → PKR
-        }
-      }
-    }
-
-    // Apply updated convertedAmt
-    const original = { ...item };
-
-    if (convertedAmt && convertedAmt !== "") {
-      if (item.Credit && item.Credit !== "") {
-        original.Credit = convertedAmt;
-      } else if (item.Debit && item.Debit !== "") {
-        original.Debit = convertedAmt;
-      }
-    }
-
-    // Add original
-    result.push(original);
-
-    // Duplicate
-    const newItem = { ...original };
-
-    const origCredit = newItem.Credit;
-    const origDebit = newItem.Debit;
-
-    newItem.Credit = origDebit || "";
-    newItem.Debit = origCredit || "";
-
-    const file = item.FileName?.toLowerCase() || "";
-    if (file.includes("tst-me")) {
-      newItem.Account = "ASSET > Accounts Receivable: TST ME";
-    } else if (file.includes("enterprise")) {
-      newItem.Account = "ASSET > Accounts Receivable: TST Enterprise";
-    }
-
-    result.push(newItem);
-  }
-
-  return result;
-}
-
 export const parseMergedGeneralLedgerReports = (mergedReports) => {
   const combinedOutput = [];
   console.log("Parsing merged reports:", mergedReports);
@@ -222,105 +140,6 @@ const formatDate = (dateStr) => {
   return `${m}/${d}/${y}`;
 };
 
-// utils/parseQuickBooksReport.js
-// utils/parseQuickBooksReport.js
-export const parseQuickBooksReport = (dataArray) => {
-  if (!Array.isArray(dataArray)) return [];
-
-  const result = [];
-
-  dataArray.forEach((item) => {
-    let desc = item["Memo/Description"] || "";
-    let exch = item["Exchange Rate"] || "";
-    if (!desc.trim()) return; // skip empty descriptions
-
-    // --- Remove CCR from description ---
-    desc = desc.replace(/\|?\s*CCR\s*=\s*\d+/i, "").trim();
-
-    let convertedAmt = item.ForeignAmount || "";
-
-    // --- Extract CCR if needed for conversion ---
-    const ccrMatch = item["Memo/Description"]?.match(/CCR\s*=\s*(\d+)/i);
-    const CCR = ccrMatch ? Number(ccrMatch[1]) : null;
-
-    // --- AED Conversion (check Debit/Credit) ---
-    if (item.Currency === "USD") {
-      if (item.Credit && item.Credit !== "") {
-        const num = Number(item.Credit);
-        if (!isNaN(num)) {
-          const usd = num / exch; // AED → USD
-          convertedAmt = CCR ? (usd * CCR).toFixed(2) : usd.toFixed(2);
-        }
-      } else if (item.Debit && item.Debit !== "") {
-        const num = Number(item.Debit);
-        if (!isNaN(num)) {
-          const usd = num / exch; // AED → USD
-          convertedAmt = CCR ? (usd * CCR).toFixed(2) : usd.toFixed(2);
-        }
-      }
-    }
-
-    // --- USD Conversion with CCR ---
-    if (item.Currency === "AED" && CCR && exch == "1.00") {
-      if (item.Credit && item.Credit !== "") {
-        const num = Number(item.Credit);
-        if (!isNaN(num)) {
-          const usd = num / 3.673; // AED → USD
-          convertedAmt = CCR ? (usd * CCR).toFixed(2) : usd.toFixed(2);
-        }
-      } else if (item.Debit && item.Debit !== "") {
-        const num = Number(item.Debit);
-        if (!isNaN(num)) {
-          const usd = num / 3.673; // AED → USD
-          convertedAmt = CCR ? (usd * CCR).toFixed(2) : usd.toFixed(2);
-        }
-      }
-    }
-    if (item.Currency === "AED" && CCR && exch !== "1.00") {
-        if (item.Credit && item.Credit !== "") {
-          const base = Number(item.Credit);
-          if (!isNaN(base)) convertedAmt = (base * CCR).toFixed(2);
-        } else if (item.Debit && item.Debit !== "") {
-          const base = Number(item.Debit);
-          if (!isNaN(base)) convertedAmt = (base * CCR).toFixed(2);
-        }
-      }
-
-    // --- Apply updated convertedAmt ---
-    const original = { ...item, "Memo/Description": desc };
-
-    if (convertedAmt && convertedAmt !== "") {
-      if (item.Credit && item.Credit !== "") original.Credit = convertedAmt;
-      else if (item.Debit && item.Debit !== "") original.Debit = convertedAmt;
-    }
-    const firstPart = desc.split("|")[0];
-    original.Account = firstPart || item.Account || "";
-
-    // --- Add original row ---
-    result.push(original);
-
-    // --- Duplicate with swapped Credit/Debit ---
-    const newItem = { ...original };
-    const origCredit = newItem.Credit;
-    const origDebit = newItem.Debit;
-
-    newItem.Credit = origDebit || "";
-    newItem.Debit = origCredit || "";
-
-    // --- Set Account based on FileName ---
-    const file = (item.FileName || "").toLowerCase();
-    if (file.includes("tst-me")) {
-      newItem.Account = "ASSET > Accounts Receivable: TST ME";
-    } else if (file.includes("tst-ent")) {
-      newItem.Account = "ASSET > Accounts Receivable: TST Enterprise";
-    }
-
-    result.push(newItem);
-  });
-
-  return result;
-};
-
 export const formatAccountsForDropdown = (companies) => {
   return companies.map((company) => ({
     label: company.companyName, // Group header
@@ -349,5 +168,189 @@ export const showToast = (message, type = "success") => {
     setTimeout(() => toast.remove(), 400);
   }, 3000);
 };
+
+// ----------------------------------------------------------
+//  Utility: Determine company from filename
+// ----------------------------------------------------------
+function determineCompany(fileName = "") {
+  const file = fileName.toLowerCase();
+  if (file.includes("tst-me")) return "tst-me";
+  if (file.includes("enterprise") || file.includes("tst-ent"))
+    return "tst-ent";
+  if (file.includes("acna")) return "acna";
+  return "";
+}
+
+// ----------------------------------------------------------
+//  Utility: Extract CCR from original description
+// ----------------------------------------------------------
+function extractCCR(desc = "") {
+  const match = desc.match(/CCR\s*=\s*(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
+
+// ----------------------------------------------------------
+//  Utility: Clean description (remove CCR=xxx)
+// ----------------------------------------------------------
+function cleanDescription(desc = "") {
+  // Remove CCR and EXR
+  let cleaned = desc.replace(/\|?\s*CCR\s*=\s*\d+/i, "");
+  cleaned = cleaned.replace(/\|?\s*EXR\s*=\s*[\d.]+/i, "");
+
+  return cleaned;
+}
+
+// ----------------------------------------------------------
+//  Utility: Get account before first |
+// ----------------------------------------------------------
+function getOriginalAccount(desc = "", fallback = "") {
+  return desc.split("|")[0].trim() || fallback;
+}
+
+// ----------------------------------------------------------
+//  Utility: Company-based conversion logic
+//  Returns: convertedAmt OR null
+// ----------------------------------------------------------
+function convertAmount(item, company, CCR) {
+  if (!CCR) return null;
+
+  const base = Number(item.Credit || item.Debit);
+  if (isNaN(base)) return null;
+
+  // Extract EXR from description
+  const exrMatch = (item["Memo/Description"] || "").match(/EXR\s*=\s*([\d.]+)/i);
+  const exr = exrMatch ? Number(exrMatch[1]) : 0; // default to 0 if not found
+
+  // ==== ACNA (simple CCR multiplication) ====
+  if (company === "acna") {
+    return (base * CCR).toFixed(2);
+  }
+
+  // ==== TST-ME ====
+  if (company === "tst-me") {
+    // Always use exr from description
+    if (exr === 0) return 0; // no EXR, multiply by 0
+
+    if (item.Currency === "USD") {
+      const usd = base / exr;
+      return (usd * CCR).toFixed(2);
+    }
+
+    if (item.Currency === "AED") {
+      if (exr === 1) {
+        // fallback if no EXR found
+        const usd = base / 3.673;
+        return (usd * CCR).toFixed(2);
+      }
+      return (base * CCR).toFixed(2); // normal EXR multiplication
+    }
+  }
+
+  return null;
+}
+
+// ----------------------------------------------------------
+//  Utility: Duplicate entry account based on company
+// ----------------------------------------------------------
+function getDuplicateAccount(company) {
+  if (company === "tst-me") return "ASSET > Accounts Receivable: TST ME";
+  if (company === "tst-ent")
+    return "ASSET > Accounts Receivable: TST Enterprises";
+  if (company === "acna") return "ASSET > Accounts Receivable: ACNA";
+  return "";
+}
+
+// ----------------------------------------------------------
+//  Build original entry
+// ----------------------------------------------------------
+function buildOriginalEntry(item, cleanedDesc, convertedAmt, originalAccount) {
+  const original = { ...item, "Memo/Description": cleanedDesc };
+
+  if (convertedAmt !== null) {
+    if (item.Credit) original.Credit = convertedAmt;
+    else if (item.Debit) original.Debit = convertedAmt;
+  }
+
+  original.Account = originalAccount;
+  return original;
+}
+
+// ----------------------------------------------------------
+//  Build duplicate entry
+// ----------------------------------------------------------
+function buildDuplicateEntry(original, company) {
+  const newItem = { ...original };
+
+  newItem.Credit = original.Debit || "";
+  newItem.Debit = original.Credit || "";
+
+  newItem.Account = getDuplicateAccount(company);
+  return newItem;
+}
+
+// ----------------------------------------------------------
+//  MAIN FUNCTION — now super clean
+// ----------------------------------------------------------
+export function parseQuickBooksReport(dataArray) {
+  if (!Array.isArray(dataArray)) return [];
+
+  const result = [];
+
+  for (const item of dataArray) {
+    const originalDesc = item["Memo/Description"] || "";
+    if (!originalDesc.trim()) continue;
+
+    const company = determineCompany(item.FileName);
+    const CCR = extractCCR(originalDesc);
+    let cleanedDesc = cleanDescription(originalDesc);
+    cleanedDesc = removeFirstPipeSection(cleanedDesc); 
+    
+    // ORIGINAL ACCOUNT ALWAYS from original description
+    const originalAccount = getOriginalAccount(originalDesc, item.Account);
+
+    // ========== TST-ENT HAS NO CONVERSION ==========
+    if (company === "tst-ent") {
+      const original = buildOriginalEntry(item, cleanedDesc, null, originalAccount);
+      const duplicate = buildDuplicateEntry(original, company);
+
+      result.push(original, duplicate);
+      continue;
+    }
+
+    // Perform conversion (ACNA, TST-ME)
+    const convertedAmt = convertAmount(item, company, CCR);
+
+    // Build original entry
+    const original = buildOriginalEntry(item, cleanedDesc, convertedAmt, originalAccount);
+
+    // Build duplicate
+    const duplicate = buildDuplicateEntry(original, company);
+
+    result.push(original, duplicate);
+  }
+
+  return result;
+}
+
+function removeFirstPipeSection(desc = "") {
+  if (!desc.includes("|")) return desc.trim();
+
+  // Split once at first pipe
+  const parts = desc.split("|");
+
+  // Remove the first part (Account name)
+  parts.shift();
+
+  // Join the rest
+  return parts.join("|").trim();
+}
+
+function extractEXR(description) {
+  const match = description.match(/EXR\s*=\s*([0-9]*\.?[0-9]+)/);
+  if (match) {
+    return parseFloat(match[1]);     // exact precision (e.g. 3.673)
+  }
+  return 0; // no EXR found
+}
 
 
