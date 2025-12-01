@@ -238,24 +238,25 @@ function getOriginalAccount(desc = "", fallback = "") {
 //  Returns: convertedAmt OR null
 // ----------------------------------------------------------
 function convertAmount(item, company, CCR) {
-  if (!CCR) return null;
+  // Check only for missing CCR, not for zero
+  if (CCR === null || CCR === undefined) return null;
 
   const base = Number(item.Credit || item.Debit);
   if (isNaN(base)) return null;
 
   // Extract EXR from description
   const exrMatch = (item["Memo/Description"] || "").match(/EXR\s*=\s*([\d.]+)/i);
-  const exr = exrMatch ? Number(exrMatch[1]) : 0; // default to 0 if not found
+  const exr = exrMatch ? Number(exrMatch[1]) : 0;
 
   // ==== ACNA (simple CCR multiplication) ====
   if (company === "acna") {
+    console.log("ACNA conversion:", { base, CCR });
     return (base * CCR).toFixed(2);
   }
 
   // ==== TST-ME ====
   if (company === "tst-me") {
-    // Always use exr from description
-    if (exr === 0) return 0; // no EXR, multiply by 0
+    if (exr === 0) return 0; // no EXR → result is zero
 
     if (item.Currency === "USD") {
       const usd = base / exr;
@@ -264,11 +265,10 @@ function convertAmount(item, company, CCR) {
 
     if (item.Currency === "AED") {
       if (exr === 1) {
-        // fallback if no EXR found
         const usd = base / 3.673;
         return (usd * CCR).toFixed(2);
       }
-      return (base * CCR).toFixed(2); // normal EXR multiplication
+      return (base * CCR).toFixed(2);
     }
   }
 
