@@ -142,17 +142,42 @@ const formatDate = (dateStr) => {
 };
 
 export const formatAccountsForDropdown = (companies) => {
-  return companies.map((company) => ({
-    label: company.companyName, // Group header
-    options: company.accounts.map((acc) => ({
-      label: acc.Name, // What user sees
-      value: {
-        accountId: acc.Id, // Stored value
-        companyName: company.companyName,
-      },
-    })),
-  }));
+  return companies.map((company) => {
+    // Step 1: find the "Account Reserves" account
+    const reservesAcc = company.accounts.find(
+      (acc) => acc.Name?.trim().toLowerCase() === "reserves"
+    );
+
+    if (!reservesAcc) {
+      // If company has no reserves account → empty options
+      return {
+        label: company.companyName,
+        options: [],
+      };
+    }
+
+    const reservesId = reservesAcc.Id;
+
+    // Step 2: Filter accounts by rule
+    const filtered = company.accounts.filter((acc) => {
+      const parent = acc.ParentRef?.value;
+      return acc.Id === reservesId || parent === reservesId;
+    });
+
+    // Step 3: Format for dropdown
+    return {
+      label: company.companyName,
+      options: filtered.map((acc) => ({
+        label: acc.Name,
+        value: {
+          accountId: acc.Id,
+          companyName: company.companyName,
+        },
+      })),
+    };
+  });
 };
+
 
 export const showToast = (message, type = "success") => {
   const toast = document.createElement("div");
@@ -187,7 +212,7 @@ function determineCompany(fileName = "") {
 // ----------------------------------------------------------
 function extractCCR(desc = "") {
   const match = desc.match(/CCR\s*=\s*(\d+)/i);
-  return match ? Number(match[1]) : null;
+  return match ? Number(match[1]) : 0;
 }
 
 // ----------------------------------------------------------
@@ -257,7 +282,7 @@ function getDuplicateAccount(company) {
   if (company === "tst-me") return "ASSET > Accounts Receivable: TST ME";
   if (company === "tst-ent")
     return "ASSET > Accounts Receivable: TST Enterprises";
-  if (company === "acna") return "ASSET > Accounts Receivable: ACNA";
+  if (company === "acna") return "ASSET > Accounts Receivable: ACNA Inc.";
   return "";
 }
 
