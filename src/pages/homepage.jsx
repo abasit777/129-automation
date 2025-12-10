@@ -96,6 +96,10 @@ function HomePage() {
     {
       name: "Waqas Rasheed",
       path: "Waqas Rasheed/Accounts - Waqas Rasheed_2025-26.xlsx"
+    },
+    {
+      name: "SPV 1",
+      path: "SPV1/Accounts - SPV1_2025-26"
     }
   ];
   
