@@ -99,7 +99,7 @@ function HomePage() {
     },
     {
       name: "SPV 1",
-      path: "SPV1/Accounts - SPV1_2025-26"
+      path: "SPV1/Accounts - SPV1_2025-26.xlsx"
     }
   ];
   
